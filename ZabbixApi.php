@@ -7,7 +7,7 @@
  *
  * This file is part of PhpZabbixApi.
  *
- * @version     $Id: ZabbixApi.php 1 2014-10-31 13:00:00 Gustavo $
+ * @version     $Id: ZabbixApi.php 2 2014-11-07 15:00:00 Gustavo $
  */
 
 
@@ -36,6 +36,20 @@ class ZabbixApi extends ZabbixApiAbstract {
      */
     
     private $timeStamp;
+    
+    /**
+     * @brief   INTERFACE parameters.
+     */
+    
+    private $defaultInterface = [
+        'type' => '2',
+        'main' => '1',
+        'useip' => '1',
+        'ip' => '',
+        'dns' => '',
+        'port' => '161'
+        ];
+    
 
     /**
      * @brief   Class constructor.
@@ -121,9 +135,7 @@ class ZabbixApi extends ZabbixApiAbstract {
 
         $this->timeStamp = $this->timeStamp - ($time * 60);
 
-        // set which type of monitoring will be handled.
-//        (isset($funcType) && $funcType == '1' ) ? 
-//            $funcType = 'traffic HC (64)' : $funcType = 'packets HC (64)'; 
+        // set which type of monitoring will be handled. 
         $funcType = (isset($funcType) && $funcType == '1' ) ? 
             'traffic HC (64)' : 'packets HC (64)'; 
 
@@ -208,6 +220,91 @@ class ZabbixApi extends ZabbixApiAbstract {
         
         return $info;
     }
+    
 
-
+    /**
+    * @brief   Create a host and assign a template to it.
+    *
+    * The $templateid should be a valid template id.
+    * 
+    * The $ip should be a ip address that is not being used in the zabbix.
+    *
+    * The $name should be a name that  is not being used in the zabbix.
+    *
+    * @param   $ip          Ip address of the device.
+    * @param   $name        Name of the host.
+    * @param   $templateid  Template id that exists in the zabbix.
+    * 
+    * @retval  stdClass { 	 
+    * 
+    * 	Retrieve the hostid of the host created.
+    * 
+    * }
+    * 
+    * @throws  Custom exception
+    */
+    
+    public function createHost($ip, $name, $templateid, $groupid='9') {
+        //Verify if host already exists.
+        $this->hostExists(['host' => $name]) && 
+                $this->excep("Host \"{$name}\" already exists.");
+        $this->hostinterfaceExists(['ip' => "{$ip}"]) &&
+                $this->excep("Host with IP address \"{$ip}\" already exists.");
+                
+        //Verify ip address.
+        $this->verIpPort($ip, 1);
+        
+        //create the paramters to make the hostCreate request.
+        $params = $this->intParams($name, $templateid, $groupid);
+        print_r($params);
+        
+        return $this->hostCreate($params);       
+    }
+    
+    
+    /**
+    * @brief   Built the paramters to make the createHost request.
+    *
+    * The $templateid should be a valid template id.
+    * 
+    * The $groupid as default will be '9' (Switch_templates).
+    *
+    * The $name should be a name that  is not being used in the zabbix.
+    *
+    * @param   $name            Name of the host.
+    * @param   $templateid      Template id that exists in the zabbix.
+    * @param   $groupid         Groupid id to assign to the host.
+    * 
+    * @retval  array $params { 	 
+    * 
+    * 	Retrieve params array to create a host.
+    * 
+    * }
+    * 
+    * @throws  Custom exception
+    */
+    
+    public function intParams($name, $templateid, $groupid) {
+        
+        if (is_array($templateid)) {
+            for($i = 0; $i < count($templateid); $i++) {
+                $template[$i] = ['templateid' => "{$templateid[$i]}"];
+            }
+        } else $template['templateid'] = $templateid;
+        
+        if (is_array($groupid)) {
+            for($i = 0; $i < count($groupid); $i++) {
+                $group[$i] = ['groupid' => "{$groupid[$i]}"];
+            }
+        } else $group['groupid'] = $groupid;
+        
+        $this->defaultInterface['ip'] = $this->ipAddress;
+        
+        return $params = [
+            'host' => "{$name}",
+            'interfaces' => $this->defaultInterface,
+            'groups' => $group,
+            'templates' => $template
+        ];
+    }
 }
