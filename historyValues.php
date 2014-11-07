@@ -1,6 +1,6 @@
 <?php
 /**
- * @file        index.php
+ * @file        historyValues.php
  *
  * @brief       Exemple of using ZabbixApi by getting interface informaction.
  *
