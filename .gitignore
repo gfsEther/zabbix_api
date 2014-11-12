@@ -1,2 +1,5 @@
 *.zip
 nbproject/
+historyValues.php
+createHost.php
+
